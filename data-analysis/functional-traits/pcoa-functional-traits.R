@@ -11,6 +11,10 @@ setwd('~/projects/data-analysis/functional-traits/data/')
 
 pcoa_traits <- read.csv('pca_traits.csv', header = T, sep = ',', stringsAsFactors = T, fileEncoding = 'latin1')
 
+# Transformación log de caracteres muy asimétricos
+pcoa_traits$AFefc <- log(pcoa_traits$AFefc)   # rango ~1.72 a 7896
+pcoa_traits$AF_AC <- log(pcoa_traits$AF_AC)   # rango ~3800 a 21900
+
 #CHEQUEO DE COLINEALIDAD
 variable_ficticea <- rep(1, 22)
 matrix_col <- cbind(variable_ficticea, pcoa_traits[,c(9:18)])
@@ -18,15 +22,19 @@ modelo <- lm(variable_ficticea ~  fenologia_hoja_ID + conc_P + AFefc + AFE + FMF
 colinealidad <- check_collinearity(modelo)
 colinealidad
 
-#elimino CAS que tiene vif alto
+#elimino CAS que tiene vif alto y ademas es redundante con Dl
 modelo <- lm(variable_ficticea ~  fenologia_hoja_ID + conc_P + AFefc + AFE + FMF + AF_AC + Ft + CMSh + Dl,  data = matrix_col)
 colinealidad <- check_collinearity(modelo)
 colinealidad
 
-##elimino AF/AC que tiene vif alto
-modelo <- lm(variable_ficticea ~  fenologia_hoja_ID + conc_P + AFefc + AFE + FMF + Ft + CMSh + Dl,  data = matrix_col)
-colinealidad <- check_collinearity(modelo)
-colinealidad
+# AF/AC tiene vif alto (12.03), pero es importante mantenerla en el análisis porque mide el area foliar por area de conduccion, algo que no captura otra variable,
+# aunque este correlacionada con FMF. Decisión: agrupo AF_AC con FMF en gawdis (groups) para que entre las dos pesen como un solo caracter, ya que gran parte de
+# AF/AC esta explicado con FMF en el espacio de variables.
+# Con qué variable numerica se correlaciona AF_AC:
+num <- pcoa_traits[, c("conc_P", "AFefc", "AFE", "FMF", "AF_AC", "Ft", "CMSh", "Dl")]
+round(sort(cor(num)[, "AF_AC"]), 2) # Pearson
+round(sort(cor(num, method = "spearman")[, "AF_AC"]), 2)  # Spearman
+# tanto con Pearson como con Spearman, AF/AC se correlaciona con FMF (0.8 y 0.82, respectivamente). Con las demas variables la correlacion es |r| < 0.65.
 
 traits <- pcoa_traits[, c(9:17)] 
 head(traits)
