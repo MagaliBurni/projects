@@ -7,6 +7,7 @@ library(DHARMa)
 library(glmmTMB)
 library(car)
 library(gawdis) # si falta: install.packages("gawdis")
+library(dplyr)
 #data 
 setwd('~/projects/data-analysis/functional-traits/data/')
 
@@ -15,6 +16,10 @@ pcoa_traits <- read.csv('pca_traits.csv', header = T, sep = ',', stringsAsFactor
 # Transformación log de caracteres muy asimétricos
 pcoa_traits$AFefc <- log(pcoa_traits$AFefc)   # rango ~1.72 a 7896
 pcoa_traits$AF_AC <- log(pcoa_traits$AF_AC)   # rango ~3800 a 21900
+
+# Recodificación de fenologia_hoja_ID a binaria 0/1 (deciduo = 0, perenne = 1)
+pcoa_traits <- pcoa_traits |>
+  mutate(fenologia_hoja_ID = if_else(fenologia_hoja_ID == 2, 1, 0))
 
 #CHEQUEO DE COLINEALIDAD
 variable_ficticea <- rep(1, 22)
