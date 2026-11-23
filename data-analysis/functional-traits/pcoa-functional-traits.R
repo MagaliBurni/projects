@@ -52,6 +52,9 @@ stopifnot(identical(names(grupos), colnames(traits))) # error si grupos no coinc
 dist <- gawdis(traits, w.type = "analytic", groups = unname(grupos))
 attr(dist, "weights") # pesos asignados a cada carácter
 
+# Si la distancia no es euclidiana, el PCoA sin corrección puede dar autovalores negativos y es necesario corregir
+any(cmdscale(dist, eig = TRUE)$eig < -1e-10)   # TRUE: se justifica add = T (corrección de Cailliez)
+
 PCoA<-cmdscale(dist, eig=T, add=T)
 PCoA
 
@@ -59,16 +62,12 @@ PCoA
 PCoA$eig/sum(PCoA$eig)*100
 
 # calculo de la importancia relativa de las variables en la ordenacion
-which(dist<0) #para saber si hay valores negativos. Si hubiese hay que hacer correcci?n
-which(traits<0)
-
 vectores<-envfit(PCoA, traits, perm=1000)
 vectores
 rownames(vectores$vectors$arrows) <- c('Fenología foliar', 'P', 'AFefc', 'AFE',
                                        'FMF', 'AF/AC', 'Ft', 'CMSh', 'Dl')
 
 # GR?FICO
-windows()
 ## Mapa de colores para los tipos de dormici?n
 color_mapping <- c("Invasora" = "#717171", "No invasora" = "#D0D0D0")
 
