@@ -6,6 +6,7 @@ library(patchwork)
 library(DHARMa)
 library(glmmTMB)
 library(car)
+library(gawdis) # si falta: install.packages("gawdis")
 #data 
 setwd('~/projects/data-analysis/functional-traits/data/')
 
@@ -36,11 +37,15 @@ round(sort(cor(num)[, "AF_AC"]), 2) # Pearson
 round(sort(cor(num, method = "spearman")[, "AF_AC"]), 2)  # Spearman
 # tanto con Pearson como con Spearman, AF/AC se correlaciona con FMF (0.8 y 0.82, respectivamente). Con las demas variables la correlacion es |r| < 0.65.
 
-traits <- pcoa_traits[, c(9:17)] 
+traits <- pcoa_traits[, c("fenologia_hoja_ID", "conc_P", "AFefc", "AFE", "FMF", "AF_AC", "Ft", "CMSh", "Dl")] 
 head(traits)
 colnames(traits)
 
-dist<-vegdist(traits, method="gower", binary=F) #c?lculo de distancia de Gower hace estandarizacion de variables cuantitativas
+# Distancia de Gower balanceada con gawdis. FMF y AF_AC comparten el grupo 5, así que entre las dos pesan como un solo caracter.
+grupos <- c(fenologia_hoja_ID = 1, conc_P = 2, AFefc = 3, AFE = 4, FMF = 5, AF_AC = 5, Ft = 6, CMSh = 7, Dl = 8)
+stopifnot(identical(names(grupos), colnames(traits))) # error si grupos no coincide con las columnas de traits (nombres y orden)
+dist <- gawdis(traits, w.type = "analytic", groups = unname(grupos))
+attr(dist, "weights") # pesos asignados a cada carácter
 
 PCoA<-cmdscale(dist, eig=T, add=T)
 PCoA
