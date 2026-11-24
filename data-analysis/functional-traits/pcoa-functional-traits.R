@@ -58,17 +58,23 @@ any(cmdscale(dist, eig = TRUE)$eig < -1e-10)   # TRUE: se justifica add = T (cor
 PCoA<-cmdscale(dist, eig=T, add=T)
 PCoA
 
-## calculo de la variablidad que absorbe cada uno de los ejes 
-PCoA$eig/sum(PCoA$eig)*100
+## calculo de la variablidad que absorbe cada uno de los ejes
+var_ejes <- PCoA$eig/sum(PCoA$eig)*100
+round(var_ejes, 2)
 
-# calculo de la importancia relativa de las variables en la ordenacion
+# importancia relativa de las variables en la ordenacion
+set.seed(123)
 vectores<-envfit(PCoA, traits, perm=1000)
 vectores
-rownames(vectores$vectors$arrows) <- c('Fenología foliar', 'P', 'AFefc', 'AFE',
-                                       'FMF', 'AF/AC', 'Ft', 'CMSh', 'Dl')
+# Etiquetas de las flechas
+etiquetas_carac <- c(fenologia_hoja_ID = 'Fenología foliar', conc_P = 'P', AFefc = 'AFefc',
+                      AFE = 'AFE', FMF = 'FMF', AF_AC = 'AF/AC', Ft = 'Ft', CMSh = 'CMSh', Dl = 'Dl')
+nombres_flechas <- rownames(vectores$vectors$arrows)
+stopifnot(all(nombres_flechas %in% names(etiquetas_carac)))
+rownames(vectores$vectors$arrows) <- etiquetas_carac[nombres_flechas]
 
-# GR?FICO
-## Mapa de colores para los tipos de dormici?n
+# GRAFICO
+## Mapa de colores para los niveles de status (Invasora, No invasora)
 color_mapping <- c("Invasora" = "#717171", "No invasora" = "#D0D0D0")
 
 
@@ -77,9 +83,17 @@ colnames(pcoa_coords) <- c("PCo1", "PCo2")
 pcoa_coords$status <- pcoa_traits$status # Invasoras/no invasoras
 pcoa_coords$par<- pcoa_traits$par
 
-# Como los puntos 5 (no inv) y 6 (inv) se superponen
-pcoa_coords$PCo1[6] <- pcoa_coords$PCo1[6] + 0.03 # Desplazar ligeramente en el eje X
-pcoa_coords$PCo2[6] <- pcoa_coords$PCo2[6] - 0.03  # Desplazar ligeramente en el eje Y
+# Rótulos de los ejes con % de variación
+etiqueta_x <- sprintf("PCo 1 (%.2f %%)", var_ejes[1])
+etiqueta_y <- sprintf("PCo 2 (%.2f %%)", var_ejes[2])
+
+# Límites con margen para las etiquetas
+margen <- 0.15
+lim_x <- range(pcoa_coords$PCo1) + c(-1, 1) * margen * diff(range(pcoa_coords$PCo1))
+lim_y <- range(pcoa_coords$PCo2) + c(-1, 1) * margen * diff(range(pcoa_coords$PCo2))
+
+# Posición de las etiquetas
+pos_etiquetas <- setNames(rep(2, nrow(pcoa_coords)), pcoa_traits$especie)  # 1 = abajo, 2 = izquierda, 3 = arriba, 4 = derecha
 
 #tiff(filename = "PCoA_without_legend.tiff",
 #     width = 17.4, height = 14, units = "cm", res = 300)
@@ -88,9 +102,10 @@ png(filename = "PCoA1_without_legend.png",
     width = 17.4, height = 14, units = "cm", res = 300)
 
 par(mar = c(4, 4, 2, 2))
-fig <- ordiplot(PCoA, choices = c(1, 2), type = "none", display = "sites",  
-                xlab = "PCo 1 (26.36 %)", ylab = "PCo 2 (15.25 %)")
-plot.window(xlim = c(-0.7, 0.7), ylim = c(-0.5, 0.5))
+# xlim/ylim dentro de ordiplot así los ejes corresponden a los puntos y se mantiene la escala 1:1
+fig <- ordiplot(PCoA, choices = c(1, 2), type = "none", display = "sites",
+                xlab = etiqueta_x, ylab = etiqueta_y,
+                xlim = lim_x, ylim = lim_y)
 abline(h = 0, col = "grey70", lty = 2)
 abline(v = 0, col = "grey70", lty = 2)
 # Diagonales
@@ -98,15 +113,15 @@ abline(v = 0, col = "grey70", lty = 2)
 #segments(-0.7, -0.5, 0.7, 0.5, col = "grey80", lty = 2)
 points(pcoa_coords$PCo1, pcoa_coords$PCo2,
        pch = 16,
-       col = color_mapping[pcoa_coords$status], # Color seg?n status
+       col = color_mapping[as.character(pcoa_coords$status)], # Color según status
        cex = 1)
 plot(vectores, p.max = 0.05, col="black", cex=0.9, font=1)
 text(pcoa_coords$PCo1, pcoa_coords$PCo2, 
      labels = pcoa_coords$par, 
      col = "black",
      font = 1,
-     cex = 0.9, 
-     pos = 2,
+     cex = 0.9,
+     pos = pos_etiquetas,
      offset = 0.5)
 dev.off()
 
